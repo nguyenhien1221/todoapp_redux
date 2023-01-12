@@ -1,53 +1,71 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React from "react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { RootState } from "./redux/store";
-import { addItem, deleteItem, updateItem } from "./redux/Reducer/taskSlice";
-import { getTodos } from "./redux/Reducer/taskSlice";
+import { AppDispatch, RootState } from "./redux/store";
+import {
+    getTodos,
+    deleteTodo,
+    addTodo,
+    updateTodo,
+} from "./redux/Reducer/taskSlice";
 
 import "./App.css";
 
 function App() {
-    const dispatch = useDispatch();
+    const dispatch = useDispatch<AppDispatch>();
 
     const [show, setShow] = useState(false);
     const [task, setTask] = useState("");
     const [modifyingTask, setModifyingTask] = useState("");
-    const [modifyingTaskId, setModifyingTaskId] = useState(0)
+    const [modifyingTaskId, setModifyingTaskId] = useState<number>(0);
 
     //get task list
-    const list = useSelector((state: RootState) => state.todo);
-    const todo = useSelector((state: RootState) => state.todo)
-    console.log(todo)
+    const taskListResponse = useSelector(
+        (state: RootState) => state.todo
+    ).flat();
+
+    useEffect(() => {
+        dispatch(getTodos());
+        console.log("render");
+    }, [dispatch]);
 
     const handleAdd = (e: any) => {
         e.preventDefault();
         if (task === "") {
-            alert('Xin mời nhập công việc')
+            alert("Xin mời nhập công việc");
             return;
         }
-        dispatch(addItem({ title: task, id: 0 }));
+        dispatch(addTodo(task))
+            .unwrap()
+            .then(() => dispatch(getTodos()));
         setTask("");
     };
 
     const handleDelete = (taskId: number) => {
-        dispatch(deleteItem({ id: taskId, title: "" }));
+        dispatch(deleteTodo(taskId))
+            .then(() => dispatch(getTodos()));
+
     };
 
     const handleUpdate = () => {
-        if (modifyingTask === ''){
+        if (modifyingTask === "") {
             return;
         }
+        dispatch(
+            updateTodo({ id: modifyingTaskId, updatedName: modifyingTask })
+        )
+            .unwrap()
+            .then(() => dispatch(getTodos()));
         setShow(!show);
-        dispatch(updateItem({ id: modifyingTaskId, title: modifyingTask }));
-        setModifyingTask('')
+        setModifyingTask("");
     };
-    
-    const toggleShow = (taskId: number, taskTitle: string) => {
-        setModifyingTaskId(taskId)
-        setModifyingTask(taskTitle);
+
+    const toggleShow = (taskId: number, taskName: string) => {
+        setModifyingTaskId(taskId);
+        setModifyingTask(taskName);
         setShow(!show);
-    }; 
+    };
 
     return (
         <>
@@ -57,7 +75,6 @@ function App() {
                     onClick={() => setShow(!show)}
                 ></i>
                 <p className="form-label">Sửa công việc</p>
-                <b className="modifying-job">{task}</b>
                 <input
                     className="modifi-input"
                     type="text"
@@ -65,7 +82,7 @@ function App() {
                     onChange={(e) => setModifyingTask(e.target.value)}
                 ></input>
                 <p className="error"></p>
-                <button onClick={handleUpdate}>Xác nhận</button>
+                <button onClick={() => handleUpdate()}>Xác nhận</button>
             </div>
 
             <div className={show ? "container blur" : "container"}>
@@ -76,29 +93,25 @@ function App() {
                         type="text"
                         placeholder="Nhập công việc cần làm..."
                         onChange={(e) => setTask(e.target.value)}
-                       
                     ></input>
                     <p className="error"></p>
-                    <button onClick={handleAdd}>Thêm</button>
+                    <button onClick={(e) => handleAdd(e)}>Thêm</button>
                 </div>
 
                 <div className="list-job">
                     <ul>
-                        {list.map((item) => (
+                        {taskListResponse.map((item) => (
                             <li key={item.id}>
                                 <div className="item">
                                     <p>
                                         <i className="arrow bx bxs-right-arrow"></i>
-                                        {item.title}
+                                        {item.name}
                                     </p>
                                     <div className="item-control">
                                         <i
                                             className="edit-btn bx bxs-edit"
                                             onClick={() =>
-                                                toggleShow(
-                                                    item.id,
-                                                    item.title
-                                                )
+                                                toggleShow(item.id, item.name)
                                             }
                                         ></i>
                                         <i
